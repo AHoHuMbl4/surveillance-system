@@ -1,0 +1,26 @@
+{
+  "build": {
+    "devPath": "http://localhost:1420",
+    "distDir": "../dist"
+  },
+  "package": {
+    "productName": "surveillance-system",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": true
+    },
+    "bundle": {
+      "active": true,
+      "identifier": "com.surveillance.system"
+    },
+    "windows": [
+      {
+        "title": "Surveillance System",
+        "width": 1200,
+        "height": 800
+      }
+    ]
+  }
+}

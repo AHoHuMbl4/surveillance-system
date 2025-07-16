@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система видеонаблюдения - Отладка</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .debug-panel {
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            min-width: 400px;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .test-accounts {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        .test-accounts h3 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .test-accounts p {
+            margin: 0.25rem 0;
+            color: #666;
+        }
+
+        .status-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .quick-login {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .quick-login button {
+            flex: 1;
+            padding: 8px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .quick-login button:hover {
+            background: #5a6268;
+        }
+
+        .network-info {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-panel" id="debugLog">
+🔍 Отладочная консоль инициализирована...
+</div>
+
+    <div class="main-container">
+        <div class="login-container">
+            <div class="logo">📹</div>
+            <h1>Авторизация</h1>
+            <p class="subtitle">Система видеонаблюдения - Отладочный режим</p>
+
+            <div id="statusMessage"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Логин:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Пароль:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <button type="submit" class="login-button" id="loginButton">
+                    Войти в систему
+                </button>
+            </form>
+
+            <div class="quick-login">
+                <button onclick="quickLogin('admin', 'admin123')">Быстрый вход: Админ</button>
+                <button onclick="quickLogin('operator1', 'operator123')">Быстрый вход: Оператор</button>
+            </div>
+
+            <div class="test-accounts">
+                <h3>Тестовые аккаунты:</h3>
+                <p><strong>Администратор:</strong> admin / admin123</p>
+                <p><strong>Оператор:</strong> operator1 / operator123</p>
+            </div>
+
+            <div class="network-info">
+                <strong>Сетевая информация:</strong><br>
+                URL: <span id="currentUrl"></span><br>
+                Сервер: <span id="serverStatus">Проверка...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Функция логирования
+        function debugLog(message, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const logElement = document.getElementById('debugLog');
+            const typeEmoji = {
+                'info': 'ℹ️',
+                'success': '✅',
+                'error': '❌',
+                'warning': '⚠️',
+                'network': '🌐'
+            };
+            
+            const logMessage = `${timestamp} ${typeEmoji[type] || 'ℹ️'} ${message}`;
+            logElement.textContent += '\n' + logMessage;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(logMessage);
+        }
+
+        // Функция показа статуса
+        function showStatus(message, type = 'info') {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.className = `status-message status-${type}`;
+            statusElement.textContent = message;
+            
+            debugLog(`Статус: ${message}`, type);
+        }
+
+        // Функция быстрого входа
+        function quickLogin(username, password) {
+            debugLog(`Быстрый вход: ${username}`, 'info');
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+            handleLogin({ preventDefault: () => {} });
+        }
+
+        // Функция проверки сервера
+        async function checkServerStatus() {
+            try {
+                debugLog('Проверка статуса сервера...', 'network');
+                const response = await fetch('/api/config');
+                
+                if (response.ok) {
+                    const config = await response.json();
+                    document.getElementById('serverStatus').textContent = '✅ Подключен';
+                    debugLog('Сервер доступен, конфигурация получена', 'success');
+                    debugLog(`Квартир: ${config.apartments?.length || 0}, Камер: ${config.cameras?.length || 0}`, 'info');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                document.getElementById('serverStatus').textContent = '❌ Недоступен';
+                debugLog(`Ошибка проверки сервера: ${error.message}`, 'error');
+            }
+        }
+
+        // Функция обработки входа
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginButton = document.getElementById('loginButton');
+            
+            debugLog(`Попытка авторизации пользователя: ${username}`, 'info');
+            
+            // Блокируем кнопку
+            loginButton.disabled = true;
+            loginButton.textContent = 'Авторизация...';
+            
+            showStatus('Проверка учетных данных...', 'info');
+            
+            try {
+                debugLog('Отправка запроса авторизации...', 'network');
+                
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                debugLog(`Ответ сервера: ${response.status} ${response.statusText}`, 'network');
+                
+                const result = await response.json();
+                debugLog(`Данные ответа: ${JSON.stringify(result)}`, 'network');
+                
+                if (response.ok && result.success) {
+                    debugLog(`Успешная авторизация: ${result.user.login} (${result.user.role})`, 'success');
+                    showStatus(`Добро пожаловать, ${result.user.login}!`, 'success');
+                    
+                    // Здесь должен быть переход к главному интерфейсу
+                    setTimeout(() => {
+                        debugLog('Переход к главному интерфейсу...', 'info');
+                        showStatus('Загрузка интерфейса системы...', 'info');
+                        // location.href = '/dashboard'; // Когда будет готов интерфейс
+                    }, 1500);
+                    
+                } else {
+                    debugLog(`Ошибка авторизации: ${result.error || 'Неизвестная ошибка'}`, 'error');
+                    showStatus(result.error || 'Ошибка авторизации', 'error');
+                }
+                
+            } catch (error) {
+                debugLog(`Сетевая ошибка: ${error.message}`, 'error');
+                showStatus('Ошибка подключения к серверу', 'error');
+            } finally {
+                // Разблокируем кнопку
+                loginButton.disabled = false;
+                loginButton.textContent = 'Войти в систему';
+            }
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            debugLog('Страница загружена, инициализация...', 'success');
+            
+            // Показываем текущий URL
+            document.getElementById('currentUrl').textContent = window.location.href;
+            
+            // Проверяем статус сервера
+            checkServerStatus();
+            
+            // Привязываем обработчик формы
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            
+            // Автоматически фокусируемся на поле логина
+            document.getElementById('username').focus();
+            
+            debugLog('Инициализация завершена', 'success');
+        });
+
+        // Периодическая проверка сервера
+        setInterval(checkServerStatus, 30000); // каждые 30 секунд
+    </script>
+</body>
+</html>
