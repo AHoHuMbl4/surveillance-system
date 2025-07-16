@@ -1,43 +1,969 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/src/main.ts" defer></script>
-  </head>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система видеонаблюдения - RTSP интеграция</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            overflow: hidden;
+        }
 
-      <div class="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/src/assets/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img
-            src="/src/assets/tauri.svg"
-            class="logo tauri"
-            alt="Tauri logo"
-          />
-        </a>
-        <a href="https://www.typescriptlang.org/docs" target="_blank">
-          <img
-            src="/src/assets/typescript.svg"
-            class="logo typescript"
-            alt="typescript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
-  </body>
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .auth-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .auth-form {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            min-width: 350px;
+        }
+
+        .auth-form h1 {
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: linear-gradient(45deg, #45a049, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .main-container {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .rtsp-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rtsp-toggle {
+            background: linear-gradient(45deg, #ff6b6b, #ff5252);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .rtsp-toggle.enabled {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+        }
+
+        .rtsp-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .rtsp-status.disabled {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .rtsp-status.enabled {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+        }
+
+        .camera-grid {
+            flex: 1;
+            padding: 20px;
+            display: grid;
+            gap: 15px;
+            overflow: hidden;
+        }
+
+        .camera-item {
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .camera-item:hover {
+            transform: scale(1.02);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .camera-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+        }
+
+        .camera-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .camera-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            padding: 20px 15px 15px;
+            color: white;
+        }
+
+        .camera-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .camera-status {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .stream-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff6b6b;
+        }
+
+        .stream-indicator.streaming {
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 500;
+        }
+
+        .fullscreen-video {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .fullscreen-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .fullscreen-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .apartment-info {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .auto-cycle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cycle-controls button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .cycle-controls button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .logout-btn {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+            border: 1px solid #ff6b6b;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        /* Адаптивные сетки */
+        .grid-1x1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+        .grid-2x1 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+        .grid-2x2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .grid-3x2 { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .grid-3x3 { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+        .grid-4x3 { grid-template-columns: 1fr 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+        .grid-4x4 { grid-template-columns: 1fr 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr 1fr; }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+            z-index: 1001;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification.error {
+            border-left-color: #ff6b6b;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Экран загрузки -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div>Инициализация системы видеонаблюдения...</div>
+    </div>
+
+    <!-- Авторизация -->
+    <div class="auth-container" id="authContainer" style="display: none;">
+        <form class="auth-form" id="authForm">
+            <h1>🎥 Система видеонаблюдения</h1>
+            <div class="form-group">
+                <label for="login">Логин:</label>
+                <input type="text" id="login" name="login" value="admin" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Пароль:</label>
+                <input type="password" id="password" name="password" value="admin123" required>
+            </div>
+            <button type="submit" class="btn" id="loginBtn">Войти</button>
+            <div class="error-message" id="authError"></div>
+        </form>
+    </div>
+
+    <!-- Основной интерфейс -->
+    <div class="main-container" id="mainContainer">
+        <div class="header">
+            <div class="header-left">
+                <div class="apartment-info" id="apartmentInfo">Загрузка...</div>
+                <div class="auto-cycle">
+                    <span>Автопереключение:</span>
+                    <div class="cycle-controls">
+                        <button onclick="toggleCycle()" id="cycleBtn">⏸️ Пауза</button>
+                        <select id="cycleInterval" onchange="changeCycleInterval()">
+                            <option value="5">5 сек</option>
+                            <option value="10">10 сек</option>
+                            <option value="15" selected>15 сек</option>
+                            <option value="30">30 сек</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="rtsp-controls">
+                    <button class="rtsp-toggle" id="rtspToggle" onclick="toggleRTSP()">
+                        <span id="rtspToggleText">Включить RTSP</span>
+                    </button>
+                    <div class="rtsp-status disabled" id="rtspStatus">Mock режим</div>
+                </div>
+                <button class="logout-btn" onclick="logout()">Выход</button>
+            </div>
+        </div>
+        
+        <div class="camera-grid" id="cameraGrid">
+            <!-- Камеры будут загружены динамически -->
+        </div>
+    </div>
+
+    <!-- Полноэкранный просмотр -->
+    <div class="fullscreen-overlay" id="fullscreenOverlay">
+        <video class="fullscreen-video" id="fullscreenVideo" controls></video>
+        <button class="fullscreen-close" onclick="closeFullscreen()">×</button>
+    </div>
+
+    <!-- Уведомления -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Глобальные переменные
+        let sessionId = null;
+        let userRole = null;
+        let currentApartments = [];
+        let currentApartmentIndex = 0;
+        let cycleTimer = null;
+        let cycleInterval = 15000;
+        let isCyclePaused = false;
+        let isRTSPEnabled = false;
+        let currentStreams = new Map();
+
+        // Инициализация приложения
+        async function initApp() {
+            try {
+                // Проверка состояния RTSP
+                await checkRTSPStatus();
+                
+                // Скрытие экрана загрузки и показ авторизации
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('authContainer').style.display = 'flex';
+                
+                // Настройка обработчиков событий
+                setupEventHandlers();
+                
+            } catch (error) {
+                console.error('Ошибка инициализации:', error);
+                showNotification('Ошибка инициализации: ' + error.message, 'error');
+            }
+        }
+
+        // Настройка обработчиков событий
+        function setupEventHandlers() {
+            // Обработка формы авторизации
+            document.getElementById('authForm').addEventListener('submit', handleLogin);
+            
+            // Обработка клавиш
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeFullscreen();
+                }
+            });
+        }
+
+        // Обработка авторизации
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const authError = document.getElementById('authError');
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Входим...';
+            authError.textContent = '';
+            
+            try {
+                const formData = new FormData(e.target);
+                const loginData = {
+                    login: formData.get('login'),
+                    password: formData.get('password')
+                };
+                
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(loginData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    sessionId = result.sessionId;
+                    userRole = result.role;
+                    
+                    // Переход к основному интерфейсу
+                    document.getElementById('authContainer').style.display = 'none';
+                    document.getElementById('mainContainer').style.display = 'flex';
+                    
+                    // Загрузка данных
+                    await loadApartments();
+                    startCycle();
+                    
+                    showNotification('Авторизация успешна!');
+                } else {
+                    authError.textContent = result.error || 'Ошибка авторизации';
+                }
+                
+            } catch (error) {
+                console.error('Ошибка авторизации:', error);
+                authError.textContent = 'Ошибка соединения с сервером';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Войти';
+            }
+        }
+
+        // Проверка статуса RTSP
+        async function checkRTSPStatus() {
+            try {
+                const response = await fetch('/api/rtsp/status');
+                const status = await response.json();
+                
+                isRTSPEnabled = status.rtspEnabled;
+                updateRTSPControls();
+                
+            } catch (error) {
+                console.error('Ошибка проверки RTSP статуса:', error);
+            }
+        }
+
+        // Переключение RTSP режима
+        async function toggleRTSP() {
+            const toggleBtn = document.getElementById('rtspToggle');
+            const originalText = toggleBtn.querySelector('#rtspToggleText').textContent;
+            
+            try {
+                toggleBtn.disabled = true;
+                toggleBtn.querySelector('#rtspToggleText').textContent = 'Переключение...';
+                
+                const response = await fetch('/api/rtsp/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    isRTSPEnabled = result.rtspEnabled;
+                    updateRTSPControls();
+                    
+                    // Перезагрузка текущей квартиры
+                    await loadCurrentApartment();
+                    
+                    showNotification(result.message);
+                } else {
+                    showNotification(result.error || 'Ошибка переключения RTSP', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка переключения RTSP:', error);
+                showNotification('Ошибка соединения с сервером', 'error');
+            } finally {
+                toggleBtn.disabled = false;
+                updateRTSPControls();
+            }
+        }
+
+        // Обновление RTSP контролов
+        function updateRTSPControls() {
+            const toggleBtn = document.getElementById('rtspToggle');
+            const toggleText = document.getElementById('rtspToggleText');
+            const statusElement = document.getElementById('rtspStatus');
+            
+            if (isRTSPEnabled) {
+                toggleBtn.classList.add('enabled');
+                toggleText.textContent = 'Выключить RTSP';
+                statusElement.textContent = 'RTSP активен';
+                statusElement.className = 'rtsp-status enabled';
+            } else {
+                toggleBtn.classList.remove('enabled');
+                toggleText.textContent = 'Включить RTSP';
+                statusElement.textContent = 'Mock режим';
+                statusElement.className = 'rtsp-status disabled';
+            }
+        }
+
+        // Загрузка квартир
+        async function loadApartments() {
+            try {
+                const response = await fetch('/api/apartments');
+                const data = await response.json();
+                
+                currentApartments = data.apartments || [];
+                currentApartmentIndex = data.currentIndex || 0;
+                
+                await loadCurrentApartment();
+                
+            } catch (error) {
+                console.error('Ошибка загрузки квартир:', error);
+                showNotification('Ошибка загрузки данных', 'error');
+            }
+        }
+
+        // Загрузка текущей квартиры
+        async function loadCurrentApartment() {
+            if (!currentApartments.length) return;
+            
+            const apartment = currentApartments[currentApartmentIndex];
+            const cameras = apartment.cameras || [];
+            
+            // Обновление заголовка
+            document.getElementById('apartmentInfo').textContent = 
+                `${apartment.apartment_name} (${currentApartmentIndex + 1}/${currentApartments.length})`;
+            
+            // Отображение камер
+            displayCameras(cameras);
+        }
+
+        // Отображение камер
+        function displayCameras(cameras) {
+            const grid = document.getElementById('cameraGrid');
+            const cameraCount = cameras.length;
+            
+            // Определение сетки
+            const gridClass = getGridClass(cameraCount);
+            grid.className = `camera-grid ${gridClass}`;
+            
+            // Очистка сетки
+            grid.innerHTML = '';
+            
+            // Добавление камер
+            cameras.forEach((camera, index) => {
+                const cameraElement = createCameraElement(camera, index);
+                grid.appendChild(cameraElement);
+            });
+        }
+
+        // Создание элемента камеры
+        function createCameraElement(camera, index) {
+            const cameraDiv = document.createElement('div');
+            cameraDiv.className = 'camera-item';
+            cameraDiv.onclick = () => openFullscreen(camera);
+            
+            // Создание видео элемента или заглушки
+            let videoContent;
+            if (isRTSPEnabled && camera.streams && camera.streams.low.url && camera.streams.low.status === 'streaming') {
+                // Реальный RTSP поток
+                videoContent = `
+                    <video class="camera-video" autoplay muted loop>
+                        <source src="${camera.streams.low.url}" type="application/vnd.apple.mpegurl">
+                        Ваш браузер не поддерживает видео HTML5.
+                    </video>
+                    <div class="stream-indicator streaming"></div>
+                `;
+            } else if (isRTSPEnabled && camera.streams && camera.streams.low.status === 'connecting') {
+                // Подключение к потоку
+                videoContent = `
+                    <div class="camera-placeholder">
+                        <div class="loading-spinner" style="width: 30px; height: 30px; border-width: 3px; margin-bottom: 10px;"></div>
+                        <div style="font-size: 14px;">Подключение...</div>
+                    </div>
+                    <div class="stream-indicator"></div>
+                `;
+            } else if (isRTSPEnabled) {
+                // Ошибка RTSP потока
+                videoContent = `
+                    <div class="camera-placeholder" style="background: linear-gradient(45deg, #ff6b6b 0%, #ff5252 100%);">
+                        <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                        <div style="font-size: 14px;">Камера недоступна</div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">RTSP ошибка</div>
+                    </div>
+                    <div class="stream-indicator"></div>
+                `;
+            } else {
+                // Mock режим с градиентами
+                const gradients = [
+                    'linear-gradient(45deg, #667eea 0%, #764ba2 100%)',
+                    'linear-gradient(45deg, #f093fb 0%, #f5576c 100%)',
+                    'linear-gradient(45deg, #4facfe 0%, #00f2fe 100%)',
+                    'linear-gradient(45deg, #43e97b 0%, #38f9d7 100%)',
+                    'linear-gradient(45deg, #fa709a 0%, #fee140 100%)',
+                    'linear-gradient(45deg, #a8edea 0%, #fed6e3 100%)',
+                    'linear-gradient(45deg, #ff9a9e 0%, #fecfef 100%)',
+                    'linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%)',
+                    'linear-gradient(45deg, #ff8a80 0%, #ea4c89 100%)',
+                    'linear-gradient(45deg, #8fd3f4 0%, #84fab0 100%)',
+                    'linear-gradient(45deg, #d299c2 0%, #fef9d7 100%)',
+                    'linear-gradient(45deg, #89f7fe 0%, #66a6ff 100%)',
+                    'linear-gradient(45deg, #fdbb2d 0%, #22c1c3 100%)',
+                    'linear-gradient(45deg, #e14fad 0%, #f9d423 100%)',
+                    'linear-gradient(45deg, #b721ff 0%, #21d4fd 100%)',
+                    'linear-gradient(45deg, #f8ceec 0%, #a8e6cf 100%)',
+                    'linear-gradient(45deg, #fbc2eb 0%, #a6c1ee 100%)',
+                    'linear-gradient(45deg, #ff9a56 0%, #ff6d9b 100%)',
+                    'linear-gradient(45deg, #c471f5 0%, #fa71cd 100%)',
+                    'linear-gradient(45deg, #48c6ef 0%, #6f86d6 100%)',
+                    'linear-gradient(45deg, #feada6 0%, #f5efef 100%)'
+                ];
+                
+                const gradient = gradients[index % gradients.length];
+                videoContent = `
+                    <div class="camera-placeholder" style="background: ${gradient};">
+                        <div style="font-size: 48px; margin-bottom: 15px;">📹</div>
+                        <div style="font-size: 16px; font-weight: 600;">${camera.camera_name}</div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">Mock режим</div>
+                        <div style="font-size: 10px; opacity: 0.6; margin-top: 10px;">640×480</div>
+                    </div>
+                    <div class="stream-indicator streaming"></div>
+                `;
+            }
+            
+            cameraDiv.innerHTML = `
+                ${videoContent}
+                <div class="camera-info">
+                    <div class="camera-name">${camera.camera_name}</div>
+                    <div class="camera-status">${getStatusText(camera)}</div>
+                </div>
+            `;
+            
+            return cameraDiv;
+        }
+
+        // Получение текста статуса камеры
+        function getStatusText(camera) {
+            if (isRTSPEnabled) {
+                if (camera.streams && camera.streams.low.status === 'streaming') {
+                    return 'Онлайн • RTSP поток';
+                } else if (camera.streams && camera.streams.low.status === 'connecting') {
+                    return 'Подключение...';
+                } else {
+                    return 'Недоступна • Ошибка RTSP';
+                }
+            } else {
+                return 'Онлайн • Mock данные';
+            }
+        }
+
+        // Определение класса сетки
+        function getGridClass(cameraCount) {
+            if (cameraCount <= 1) return 'grid-1x1';
+            if (cameraCount <= 2) return 'grid-2x1';
+            if (cameraCount <= 4) return 'grid-2x2';
+            if (cameraCount <= 6) return 'grid-3x2';
+            if (cameraCount <= 9) return 'grid-3x3';
+            if (cameraCount <= 12) return 'grid-4x3';
+            return 'grid-4x4';
+        }
+
+        // Открытие полноэкранного режима
+        async function openFullscreen(camera) {
+            const overlay = document.getElementById('fullscreenOverlay');
+            const video = document.getElementById('fullscreenVideo');
+            
+            try {
+                if (isRTSPEnabled) {
+                    // Попытка запуска HD потока для полноэкранного режима
+                    if (camera.streams && camera.streams.high.url) {
+                        video.src = camera.streams.high.url;
+                    } else {
+                        // Запуск HD потока через API
+                        const response = await fetch('/api/stream/start', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cameraId: camera.id, quality: 'high' })
+                        });
+                        
+                        const result = await response.json();
+                        if (result.success) {
+                            video.src = result.streamUrl;
+                        } else {
+                            throw new Error(result.error);
+                        }
+                    }
+                } else {
+                    // Mock режим - имитация HD видео
+                    video.src = 'data:video/mp4;base64,'; // Пустой источник
+                    video.poster = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+                        <defs>
+                            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(%23grad)"/>
+                        <text x="50%" y="45%" text-anchor="middle" font-family="Arial" font-size="120" fill="white" opacity="0.8">📹</text>
+                        <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="48" fill="white" font-weight="bold">${encodeURIComponent(camera.camera_name)}</text>
+                        <text x="50%" y="60%" text-anchor="middle" font-family="Arial" font-size="24" fill="white" opacity="0.7">Полноэкранный режим (Mock)</text>
+                        <text x="50%" y="65%" text-anchor="middle" font-family="Arial" font-size="18" fill="white" opacity="0.5">1920×1080</text>
+                    </svg>`;
+                }
+                
+                overlay.style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Ошибка открытия полноэкранного режима:', error);
+                showNotification('Ошибка открытия камеры: ' + error.message, 'error');
+            }
+        }
+
+        // Закрытие полноэкранного режима
+        function closeFullscreen() {
+            const overlay = document.getElementById('fullscreenOverlay');
+            const video = document.getElementById('fullscreenVideo');
+            
+            overlay.style.display = 'none';
+            video.src = '';
+            video.poster = '';
+        }
+
+        // Управление циклом
+        function startCycle() {
+            if (!isCyclePaused && currentApartments.length > 1) {
+                cycleTimer = setInterval(() => {
+                    nextApartment();
+                }, cycleInterval);
+            }
+        }
+
+        function stopCycle() {
+            if (cycleTimer) {
+                clearInterval(cycleTimer);
+                cycleTimer = null;
+            }
+        }
+
+        function toggleCycle() {
+            const btn = document.getElementById('cycleBtn');
+            
+            isCyclePaused = !isCyclePaused;
+            
+            if (isCyclePaused) {
+                stopCycle();
+                btn.textContent = '▶️ Продолжить';
+            } else {
+                startCycle();
+                btn.textContent = '⏸️ Пауза';
+            }
+        }
+
+        function changeCycleInterval() {
+            const select = document.getElementById('cycleInterval');
+            cycleInterval = parseInt(select.value) * 1000;
+            
+            // Перезапуск цикла с новым интервалом
+            if (!isCyclePaused) {
+                stopCycle();
+                startCycle();
+            }
+        }
+
+        // Переход к следующей квартире
+        async function nextApartment() {
+            if (currentApartments.length <= 1) return;
+            
+            currentApartmentIndex = (currentApartmentIndex + 1) % currentApartments.length;
+            await loadCurrentApartment();
+        }
+
+        // Выход из системы
+        function logout() {
+            stopCycle();
+            sessionId = null;
+            userRole = null;
+            
+            document.getElementById('mainContainer').style.display = 'none';
+            document.getElementById('authContainer').style.display = 'flex';
+            
+            // Очистка формы
+            document.getElementById('authForm').reset();
+            document.getElementById('authError').textContent = '';
+        }
+
+        // Показ уведомлений
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
+
+        // Периодическое обновление статуса потоков
+        setInterval(async () => {
+            if (isRTSPEnabled && document.getElementById('mainContainer').style.display !== 'none') {
+                try {
+                    const response = await fetch('/api/rtsp/streams');
+                    const streams = await response.json();
+                    
+                    // Обновление информации о потоках без полной перезагрузки
+                    currentStreams = new Map(Object.entries(streams));
+                    
+                } catch (error) {
+                    console.error('Ошибка обновления статуса потоков:', error);
+                }
+            }
+        }, 5000);
+
+        // Запуск приложения при загрузке страницы
+        window.addEventListener('load', initApp);
+
+        // Обработка HLS потоков (если поддерживается)
+        if (typeof Hls !== 'undefined') {
+            console.log('HLS.js поддерживается');
+        } else if (HTMLVideoElement.prototype.canPlayType('application/vnd.apple.mpegurl')) {
+            console.log('Нативная поддержка HLS');
+        } else {
+            console.warn('HLS не поддерживается. Некоторые RTSP потоки могут не работать.');
+        }
+    </script>
+
+    <!-- HLS.js для поддержки RTSP потоков в браузерах без нативной поддержки -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</body>
 </html>
