@@ -22,5 +22,5 @@ git push
 
 #  запуск node
 
-node simple-server.cjs
+node rtsp-server.js
 

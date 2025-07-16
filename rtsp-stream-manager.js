@@ -3,10 +3,14 @@
  * Интеграция для замены mock видео в системе видеонаблюдения
  */
 
-const { spawn } = require('child_process');
-const EventEmitter = require('events');
-const path = require('path');
-const fs = require('fs');
+import { spawn } from 'child_process';
+import { EventEmitter } from 'events';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class RTSPStreamManager extends EventEmitter {
     constructor() {
@@ -403,4 +407,4 @@ class RTSPStreamManager extends EventEmitter {
     }
 }
 
-module.exports = RTSPStreamManager;
+export default RTSPStreamManager;
