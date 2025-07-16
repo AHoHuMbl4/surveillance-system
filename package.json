@@ -1,24 +1,62 @@
 {
-  "name": "surveillance-system",
-  "version": "0.1.0",
-  "description": "Система видеонаблюдения с RTSP потоками",
-  "main": "src/main.js",
+  "name": "autonomous-surveillance-system",
+  "version": "2.0.0",
+  "description": "Кроссплатформенная система видеонаблюдения без внешних зависимостей",
+  "main": "autonomous-server.js",
+  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "start": "node autonomous-server.js",
+    "dev": "node --inspect autonomous-server.js",
+    "test": "node test-autonomous.js",
+    "info": "node -e \"console.log('Platform:', process.platform); console.log('Node.js:', process.version); console.log('Architecture:', process.arch);\""
   },
-  "dependencies": {
-    "@tauri-apps/api": "^1.6.0",
-    "bcrypt": "^6.0.0",
-    "express": "^5.1.0"
+  "keywords": [
+    "surveillance",
+    "rtsp",
+    "autonomous",
+    "cross-platform",
+    "no-dependencies",
+    "security-cameras",
+    "video-streaming"
+  ],
+  "author": "Autonomous Surveillance Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
   },
-  "devDependencies": {
-    "@tauri-apps/cli": "^1.5.0",
-    "vite": "^4.5.0"
+  "dependencies": {},
+  "devDependencies": {},
+  "os": [
+    "win32",
+    "darwin", 
+    "linux",
+    "freebsd",
+    "openbsd"
+  ],
+  "cpu": [
+    "x64",
+    "arm64",
+    "arm",
+    "ia32"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/autonomous-surveillance/surveillance-system.git"
   },
-  "type": "module"
+  "bugs": {
+    "url": "https://github.com/autonomous-surveillance/surveillance-system/issues"
+  },
+  "homepage": "https://github.com/autonomous-surveillance/surveillance-system#readme",
+  "config": {
+    "autonomous": true,
+    "external_dependencies": false,
+    "cross_platform": true,
+    "max_cameras": 250,
+    "supported_formats": ["mjpeg", "http-stream", "demo"],
+    "audio_demo_mode": true
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/autonomous-surveillance"
+  }
 }

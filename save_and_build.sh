@@ -22,5 +22,4 @@ git push
 
 #  запуск node
 
-node rtsp-server.js
-
+node autonomous-server.js
