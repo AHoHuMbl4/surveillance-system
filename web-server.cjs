@@ -1,12 +1,30 @@
-// web-server.cjs - Простой веб-сервер для тестирования без Tauri (CommonJS)
+// web-server.cjs - Исправленный веб-сервер с правильным обслуживанием статических файлов
 
 const express = require('express');
 const path = require('path');
 const app = express();
 const PORT = 3000;
 
-// Статические файлы
-app.use(express.static('src'));
+// Настройка MIME типов для TypeScript и других файлов
+express.static.mime.define({
+    'application/javascript': ['ts'],
+    'text/css': ['css'],
+    'text/html': ['html']
+});
+
+// Статические файлы с правильными MIME типами
+app.use(express.static('src', {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.ts')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        } else if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        } else if (path.endsWith('.html')) {
+            res.setHeader('Content-Type', 'text/html');
+        }
+    }
+}));
+
 app.use(express.json());
 
 // Имитация Tauri API
@@ -59,76 +77,57 @@ app.post('/api/login', (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
-    console.log('🚪 Выход пользователя:', currentUser?.login);
+    console.log('🚪 Выход из системы:', currentUser?.login);
     currentUser = null;
     isAuthenticated = false;
-    res.json({ success: true });
-});
-
-app.get('/api/current-user', (req, res) => {
-    res.json(currentUser);
-});
-
-app.get('/api/check-auth', (req, res) => {
-    res.json(isAuthenticated);
+    res.json({ success: true, message: "Выход выполнен" });
 });
 
 app.get('/api/system-status', (req, res) => {
-    const status = {
+    res.json({
         is_authenticated: isAuthenticated,
         current_user: currentUser?.login,
         user_role: currentUser?.role,
         config_loaded: true,
         apartments_count: testConfig.apartments.length,
         cameras_count: testConfig.cameras.length
-    };
-    console.log('📊 Статус системы:', status);
-    res.json(status);
+    });
 });
 
-app.get('/api/apartments', (req, res) => {
-    console.log('🏠 Запрос квартир');
-    res.json(testConfig.apartments);
+app.get('/api/config', (req, res) => {
+    if (!isAuthenticated) {
+        return res.status(401).json({ error: "Не авторизован" });
+    }
+    res.json(testConfig);
 });
 
-app.get('/api/cameras', (req, res) => {
-    console.log('📹 Запрос камер');
-    res.json(testConfig.cameras);
-});
-
-app.get('/api/greet/:name', (req, res) => {
-    const message = `Привет, ${req.params.name}! Система видеонаблюдения работает.`;
-    console.log('👋 Приветствие:', message);
-    res.json(message);
-});
-
-// Главная страница - перенаправляем на веб-версию
+// Главная страница
 app.get('/', (req, res) => {
-    const htmlPath = path.join(__dirname, 'src', 'index-web.html');
-    console.log('🌐 Запрос главной страницы:', htmlPath);
-    res.sendFile(htmlPath);
+    res.sendFile(path.join(__dirname, 'src', 'index-web.html'));
+});
+
+// Отладочная страница
+app.get('/debug', (req, res) => {
+    res.sendFile(path.join(__dirname, 'src', 'debug-client.html'));
+});
+
+// 404 для всех остальных запросов
+app.use('*', (req, res) => {
+    console.log('❓ 404 запрос:', req.originalUrl);
+    res.status(404).json({ error: 'Страница не найдена' });
 });
 
 // Запуск сервера
 app.listen(PORT, () => {
-    console.log('🚀 Веб-сервер запущен на http://localhost:' + PORT);
-    console.log('📂 Статические файлы из папки: src/');
-    console.log('');
-    console.log('👥 Тестовые аккаунты:');
-    console.log('   Администратор: admin / admin123');
-    console.log('   Оператор: operator1 / operator123');
-    console.log('');
-    console.log('🔗 Откройте браузер и перейдите на http://localhost:' + PORT);
+    console.log(`🚀 Веб-сервер запущен на http://localhost:${PORT}`);
+    console.log(`📄 Основной интерфейс: http://localhost:${PORT}/`);
+    console.log(`🔍 Отладочный интерфейс: http://localhost:${PORT}/debug`);
+    console.log(`\n👤 Тестовые аккаунты:`);
+    console.log(`   Админ: admin / admin123`);
+    console.log(`   Оператор: operator1 / operator123`);
 });
 
-// Обработка ошибок
-app.use((err, req, res, next) => {
-    console.error('❌ Ошибка сервера:', err);
-    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
-});
-
-// 404 для несуществующих маршрутов
-app.use((req, res) => {
-    console.log('❓ 404:', req.url);
-    res.status(404).json({ error: 'Маршрут не найден' });
+process.on('SIGINT', () => {
+    console.log('\n🛑 Сервер остановлен');
+    process.exit(0);
 });

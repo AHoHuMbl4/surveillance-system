@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Система видеонаблюдения (Веб-версия)</title>
+    <title>Система видеонаблюдения</title>
     <style>
         * {
             margin: 0;
@@ -12,25 +12,25 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
         }
 
         .container {
             width: 100%;
-            max-width: 500px;
+            max-width: 400px;
             padding: 20px;
         }
 
         .login-card {
             background: white;
-            border-radius: 15px;
-            padding: 40px 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
 
@@ -39,29 +39,18 @@
         }
 
         .logo {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
+            font-size: 3rem;
+            margin-bottom: 20px;
         }
 
         h1 {
-            color: #333;
             margin-bottom: 10px;
-            font-size: 24px;
+            color: #333;
         }
 
         .subtitle {
             color: #666;
             margin-bottom: 30px;
-            font-size: 14px;
         }
 
         .form-group {
@@ -72,15 +61,15 @@
         label {
             display: block;
             margin-bottom: 5px;
-            color: #333;
+            color: #555;
             font-weight: 500;
         }
 
         input[type="text"], input[type="password"] {
             width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e1e1e1;
-            border-radius: 8px;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 10px;
             font-size: 16px;
             transition: border-color 0.3s;
         }
@@ -92,70 +81,70 @@
 
         .login-btn {
             width: 100%;
-            padding: 15px;
+            padding: 12px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s;
         }
 
         .login-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
         .login-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
-        }
-
-        .error-message {
-            background: #fee;
-            color: #c33;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #fcc;
-            display: none;
-        }
-
-        .success-message {
-            background: #efe;
-            color: #3c3;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #cfc;
-            display: none;
         }
 
         .test-accounts {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-            font-size: 12px;
-            color: #666;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            font-size: 14px;
+            text-align: left;
         }
 
-        .test-accounts strong {
-            color: #333;
+        .test-accounts code {
+            background: #e1e5fe;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
         }
 
-        /* Главный экран */
+        .message {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+
         .main-screen {
             display: none;
             background: white;
-            border-radius: 15px;
+            border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            min-height: 600px;
-            max-width: 800px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            min-width: 600px;
+            min-height: 400px;
         }
 
         .main-screen.active {
@@ -168,24 +157,29 @@
             align-items: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid #eee;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
         }
 
         .user-info {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
         }
 
         .user-avatar {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #667eea;
+            color: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
             font-weight: bold;
         }
 
@@ -194,31 +188,39 @@
             background: #f44336;
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
         }
 
         .logout-btn:hover {
             background: #d32f2f;
         }
 
+        .web-notice {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #a5d6a7;
+        }
+
         .status-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             margin-bottom: 30px;
         }
 
         .status-card {
-            background: #f8f9fa;
+            background: #f8f9ff;
             padding: 20px;
             border-radius: 10px;
             text-align: center;
         }
 
         .status-value {
-            font-size: 32px;
+            font-size: 2rem;
             font-weight: bold;
             color: #667eea;
             margin-bottom: 5px;
@@ -226,86 +228,32 @@
 
         .status-label {
             color: #666;
-            font-size: 14px;
+            font-size: 0.9rem;
+        }
+
+        #content {
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 10px;
         }
 
         .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .web-notice {
-            background: #e3f2fd;
-            border: 1px solid #2196f3;
-            color: #1976d2;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .action-btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: background-color 0.3s;
-        }
-
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #45a049;
-        }
-
-        .btn-secondary {
-            background: #2196F3;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #0b7dda;
+            opacity: 0.6;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Экран авторизации -->
+        <!-- Форма входа -->
         <div class="login-card" id="loginCard">
-            <div class="web-notice">
-                ℹ️ Веб-версия для тестирования (обход проблемы libsoup в Tauri)
-            </div>
-            
             <div class="logo">📹</div>
             <h1>Авторизация</h1>
             <p class="subtitle">Система видеонаблюдения</p>
             
-            <div class="error-message" id="errorMessage"></div>
-            <div class="success-message" id="successMessage"></div>
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+            <div class="success-message" id="successMessage" style="display: none;"></div>
             
-            <!-- ВАЖНО: убрали action и method, добавили onsubmit -->
             <form id="loginForm" onsubmit="return false;">
                 <div class="form-group">
                     <label for="username">Логин:</label>
@@ -317,7 +265,6 @@
                     <input type="password" id="password" name="password" required autocomplete="current-password" value="admin123">
                 </div>
                 
-                <!-- ВАЖНО: добавили type="button" -->
                 <button type="button" class="login-btn" id="loginBtn" onclick="handleLogin()">
                     Войти в систему
                 </button>
@@ -365,38 +312,22 @@
             
             <div id="content">
                 <h3>Добро пожаловать в систему!</h3>
-                <p>Веб-версия системы видеонаблюдения работает корректно. Статус разработки:</p>
-                <ul style="margin: 20px 0; padding-left: 20px;">
-                    <li>✅ Система авторизации</li>
-                    <li>✅ Express.js backend</li>
-                    <li>✅ Веб-интерфейс</li>
-                    <li>⏳ RTSP потоки</li>
-                    <li>⏳ Интерфейс камер</li>
-                    <li>⏳ Циклическое переключение</li>
-                </ul>
-                
-                <div class="action-buttons">
-                    <button onclick="loadSystemData()" class="action-btn btn-primary">
-                        Загрузить данные системы
-                    </button>
-                    <button onclick="testGreet()" class="action-btn btn-secondary">
-                        Тест API
-                    </button>
-                </div>
+                <p>Веб-версия системы видеонаблюдения работает корректно.</p>
+                <button onclick="loadSystemData()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px;">
+                    Загрузить данные системы
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // Упрощенная веб-версия
+        // Глобальные переменные
         let currentUser = null;
 
-        console.log('🚀 Инициализация скрипта...');
-
-        // Заменяем Tauri invoke на обычные HTTP запросы
-        async function invoke(command, payload) {
-            console.log('🔌 API вызов:', command, payload);
-            const response = await fetch(`/api/${command.replace('_', '-')}`, {
+        // Функция для API вызовов
+        async function invoke(endpoint, payload) {
+            const url = endpoint.startsWith('/') ? endpoint : `/api/${endpoint}`;
+            const response = await fetch(url, {
                 method: payload ? 'POST' : 'GET',
                 headers: payload ? { 'Content-Type': 'application/json' } : {},
                 body: payload ? JSON.stringify(payload) : undefined
@@ -439,7 +370,7 @@
             }
         }
 
-        // ИСПРАВЛЕННАЯ функция обработки входа
+        // Функция обработки входа
         async function handleLogin() {
             console.log('🔐 Начало процесса авторизации...');
             
@@ -532,74 +463,44 @@
         async function loadSystemStatus() {
             try {
                 const status = await invoke('system-status');
-                updateStatusDisplay(status);
+                console.log('📊 Статус системы:', status);
+                
+                document.getElementById('apartmentsCount').textContent = status.apartments_count || 0;
+                document.getElementById('camerasCount').textContent = status.cameras_count || 0;
+                document.getElementById('connectionStatus').textContent = status.is_authenticated ? '✅' : '❌';
             } catch (error) {
                 console.error('Ошибка загрузки статуса:', error);
-            }
-        }
-
-        // Обновление отображения статуса
-        function updateStatusDisplay(status) {
-            const apartmentsCount = document.getElementById('apartmentsCount');
-            const camerasCount = document.getElementById('camerasCount');
-            const connectionStatus = document.getElementById('connectionStatus');
-            
-            if (apartmentsCount) {
-                apartmentsCount.textContent = status.apartments_count.toString();
-            }
-            
-            if (camerasCount) {
-                camerasCount.textContent = status.cameras_count.toString();
-            }
-            
-            if (connectionStatus) {
-                connectionStatus.textContent = status.config_loaded ? '✅' : '❌';
             }
         }
 
         // Загрузка данных системы
         async function loadSystemData() {
             try {
-                console.log('Загрузка данных системы...');
+                const config = await invoke('config');
+                console.log('📋 Конфигурация системы:', config);
                 
-                const apartments = await invoke('apartments');
-                console.log('Квартиры:', apartments);
-                
-                const cameras = await invoke('cameras');
-                console.log('Камеры:', cameras);
-                
-                await loadSystemStatus();
-                
-                alert('Данные системы загружены! Проверьте консоль для деталей.');
+                const content = document.getElementById('content');
+                content.innerHTML = `
+                    <h3>Конфигурация системы</h3>
+                    <p><strong>Квартиры (${config.apartments.length}):</strong></p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        ${config.apartments.map(apt => `<li>${apt.apartment_name} (${apt.apartment_number})</li>`).join('')}
+                    </ul>
+                    <p><strong>Камеры (${config.cameras.length}):</strong></p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        ${config.cameras.map(cam => `<li>${cam.camera_name} - ${cam.apartment_name}</li>`).join('')}
+                    </ul>
+                    <button onclick="loadSystemData()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px;">
+                        Обновить данные
+                    </button>
+                `;
             } catch (error) {
                 console.error('Ошибка загрузки данных:', error);
-                alert('Ошибка загрузки данных: ' + error);
+                showError('Ошибка загрузки конфигурации: ' + error.message);
             }
         }
 
-        // Тест API
-        async function testGreet() {
-            try {
-                const name = currentUser ? currentUser.login : 'Гость';
-                const result = await invoke(`greet/${name}`);
-                alert(`API ответ: ${result}`);
-            } catch (error) {
-                console.error('Ошибка теста:', error);
-                alert('Ошибка теста API: ' + error);
-            }
-        }
-
-        // Вспомогательные функции для UI
-        function setLoading(loading) {
-            if (loading) {
-                loginBtn.disabled = true;
-                loginBtn.innerHTML = '<span class="loading"></span>Вход...';
-            } else {
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Войти в систему';
-            }
-        }
-
+        // Функции отображения сообщений
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.style.display = 'block';
@@ -617,7 +518,17 @@
             successMessage.style.display = 'none';
         }
 
-        console.log('✅ Веб-Frontend инициализирован');
+        function setLoading(loading) {
+            if (loading) {
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Вход...';
+                loginCard.classList.add('loading');
+            } else {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Войти в систему';
+                loginCard.classList.remove('loading');
+            }
+        }
     </script>
 </body>
 </html>
