@@ -1,23 +1,12 @@
-// web-server.cjs - Исправленный веб-сервер с правильным обслуживанием статических файлов
+// web-server.cjs - Простой веб-сервер для тестирования без Tauri (CommonJS)
 
 const express = require('express');
 const path = require('path');
 const app = express();
 const PORT = 3000;
 
-// Статические файлы с правильными MIME типами
-app.use(express.static('src', {
-    setHeaders: (res, path) => {
-        if (path.endsWith('.ts')) {
-            res.setHeader('Content-Type', 'application/javascript');
-        } else if (path.endsWith('.css')) {
-            res.setHeader('Content-Type', 'text/css');
-        } else if (path.endsWith('.html')) {
-            res.setHeader('Content-Type', 'text/html');
-        }
-    }
-}));
-
+// Статические файлы
+app.use(express.static('src'));
 app.use(express.json());
 
 // Имитация Tauri API
@@ -94,7 +83,7 @@ app.get('/api/config', (req, res) => {
     res.json(testConfig);
 });
 
-// Главная страница
+// Главная страница - возвращаем нашу новую версию
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'src', 'index-web.html'));
 });
