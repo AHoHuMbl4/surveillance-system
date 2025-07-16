@@ -1,6 +1,6 @@
 /**
- * RTSP Stream Manager - Управление реальными видеопотоками через FFmpeg
- * Интеграция для замены mock видео в системе видеонаблюдения
+ * RTSP Stream Manager - Управление реальными видеопотоками через FFmpeg с поддержкой аудио
+ * Финальная версия для системы видеонаблюдения
  */
 
 import { spawn } from 'child_process';
@@ -19,35 +19,69 @@ class RTSPStreamManager extends EventEmitter {
         this.streamBuffer = new Map(); // Буферы для каждого потока
         this.connectionAttempts = new Map(); // Счетчики попыток подключения
         this.reconnectTimers = new Map(); // Таймеры переподключения
+        this.audioStreams = new Map(); // Аудио потоки
+        this.currentAudioStream = null; // Текущий активный аудио поток (эксклюзивный)
         
         // Настройки
         this.config = {
             maxRetries: 5,
             retryInterval: 30000, // 30 секунд
-            connectionTimeout: 10000, // 10 секунд
+            connectionTimeout: 15000, // 15 секунд
             bufferSize: 1024 * 1024, // 1MB буфер
             outputDir: './stream_output',
-            ffmpegPath: 'ffmpeg' // Путь к FFmpeg
+            audioOutputDir: './audio_output',
+            ffmpegPath: 'ffmpeg', // Путь к FFmpeg
+            audioCodecs: ['aac', 'pcm_mulaw', 'pcm_alaw'], // Поддерживаемые аудио кодеки
+            videoCodecs: ['h264', 'h265', 'mjpeg'] // Поддерживаемые видео кодеки
         };
         
-        this.ensureOutputDirectory();
+        this.ensureOutputDirectories();
+        console.log('🎥 RTSP Stream Manager инициализирован с поддержкой аудио');
     }
 
     /**
-     * Создание директории для выходных потоков
+     * Создание директорий для выходных потоков
      */
-    ensureOutputDirectory() {
-        if (!fs.existsSync(this.config.outputDir)) {
-            fs.mkdirSync(this.config.outputDir, { recursive: true });
-        }
+    ensureOutputDirectories() {
+        [this.config.outputDir, this.config.audioOutputDir].forEach(dir => {
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+                console.log(`📁 Создана директория: ${dir}`);
+            }
+        });
     }
 
     /**
-     * Запуск RTSP потока с двойным качеством
+     * Проверка доступности FFmpeg
+     */
+    async checkFFmpegAvailability() {
+        return new Promise((resolve) => {
+            const process = spawn(this.config.ffmpegPath, ['-version']);
+            
+            process.on('close', (code) => {
+                if (code === 0) {
+                    console.log('✅ FFmpeg доступен');
+                    resolve(true);
+                } else {
+                    console.log('❌ FFmpeg недоступен');
+                    resolve(false);
+                }
+            });
+
+            process.on('error', () => {
+                console.log('❌ FFmpeg не найден в системе');
+                resolve(false);
+            });
+        });
+    }
+
+    /**
+     * Запуск RTSP потока с поддержкой видео и аудио
      * @param {Object} camera - Объект камеры из конфигурации
      * @param {string} quality - 'low' (480p) или 'high' (1080p)
+     * @param {boolean} includeAudio - Включать ли аудио поток
      */
-    async startStream(camera, quality = 'low') {
+    async startStream(camera, quality = 'low', includeAudio = false) {
         const streamId = `${camera.id}_${quality}`;
         
         try {
@@ -56,70 +90,188 @@ class RTSPStreamManager extends EventEmitter {
                 await this.stopStream(streamId);
             }
 
+            // Анализ RTSP URL для определения поддерживаемых кодеков
+            await this.analyzeRTSPStream(camera.rtsp_link);
+
             // Выбор RTSP URL в зависимости от качества
-            const rtspUrl = quality === 'high' ? camera.rtsp_hd_link : camera.rtsp_link;
-            
-            if (!rtspUrl) {
-                throw new Error(`RTSP URL не найден для камеры ${camera.camera_name} (${quality})`);
-            }
+            const rtspUrl = quality === 'high' ? 
+                (camera.rtsp_link_high || camera.rtsp_link) : 
+                camera.rtsp_link;
 
-            // Настройки FFmpeg для разных качеств
-            const ffmpegArgs = this.buildFFmpegArgs(rtspUrl, streamId, quality);
-            
-            console.log(`🎥 Запуск потока ${camera.camera_name} (${quality})`);
-            console.log(`📡 RTSP: ${rtspUrl}`);
+            console.log(`🎬 Запуск ${quality} потока для ${camera.camera_name}...`);
 
-            // Запуск FFmpeg процесса
-            const ffmpegProcess = spawn(this.config.ffmpegPath, ffmpegArgs);
-            
-            // Сохранение процесса
-            this.activeStreams.set(streamId, {
-                process: ffmpegProcess,
+            // Создание объекта потока
+            const streamData = {
+                id: streamId,
                 camera: camera,
                 quality: quality,
+                rtspUrl: rtspUrl,
+                status: 'connecting',
+                process: null,
+                audioProcess: null,
                 startTime: Date.now(),
-                status: 'connecting'
-            });
+                includeAudio: includeAudio
+            };
+
+            // Запуск видео потока
+            const videoProcess = await this.startVideoProcess(streamData);
+            streamData.process = videoProcess;
+
+            // Запуск аудио потока если требуется
+            if (includeAudio) {
+                const audioProcess = await this.startAudioProcess(streamData);
+                streamData.audioProcess = audioProcess;
+            }
+
+            this.activeStreams.set(streamId, streamData);
+            this.connectionAttempts.set(streamId, 0);
 
             // Настройка обработчиков событий
-            this.setupFFmpegHandlers(streamId, ffmpegProcess, camera);
-
-            // Таймаут подключения
-            const connectionTimer = setTimeout(() => {
-                if (this.activeStreams.get(streamId)?.status === 'connecting') {
-                    console.log(`⏰ Таймаут подключения для ${camera.camera_name}`);
-                    this.handleStreamError(streamId, new Error('Connection timeout'));
-                }
-            }, this.config.connectionTimeout);
-
-            // Сохранение таймера
-            this.activeStreams.get(streamId).connectionTimer = connectionTimer;
+            this.setupFFmpegHandlers(streamId, videoProcess, camera);
+            
+            if (streamData.audioProcess) {
+                this.setupAudioHandlers(streamId, streamData.audioProcess, camera);
+            }
 
             return streamId;
 
         } catch (error) {
             console.error(`❌ Ошибка запуска потока ${camera.camera_name}:`, error.message);
-            this.emit('streamError', { camera, error: error.message });
+            this.handleStreamError(streamId, camera, error);
             throw error;
         }
     }
 
     /**
-     * Построение аргументов для FFmpeg
+     * Анализ RTSP потока для определения поддерживаемых кодеков
      */
-    buildFFmpegArgs(rtspUrl, streamId, quality) {
-        const outputPath = path.join(this.config.outputDir, `${streamId}.m3u8`);
+    async analyzeRTSPStream(rtspUrl) {
+        return new Promise((resolve, reject) => {
+            const analyzeArgs = [
+                '-i', rtspUrl,
+                '-t', '1',
+                '-f', 'null',
+                '-'
+            ];
+
+            const analyzeProcess = spawn(this.config.ffmpegPath, analyzeArgs);
+            let stderr = '';
+
+            analyzeProcess.stderr.on('data', (data) => {
+                stderr += data.toString();
+            });
+
+            analyzeProcess.on('close', (code) => {
+                // Анализ вывода для определения кодеков
+                const hasVideo = stderr.includes('Video:');
+                const hasAudio = stderr.includes('Audio:');
+                const videoCodec = this.extractCodec(stderr, 'Video');
+                const audioCodec = this.extractCodec(stderr, 'Audio');
+
+                console.log(`🔍 Анализ потока: видео=${hasVideo}(${videoCodec}), аудио=${hasAudio}(${audioCodec})`);
+                resolve({ hasVideo, hasAudio, videoCodec, audioCodec });
+            });
+
+            analyzeProcess.on('error', (error) => {
+                console.warn(`⚠️ Не удалось проанализировать поток: ${error.message}`);
+                resolve({ hasVideo: true, hasAudio: false }); // Предполагаем базовую поддержку
+            });
+
+            // Таймаут для анализа
+            setTimeout(() => {
+                analyzeProcess.kill('SIGTERM');
+                resolve({ hasVideo: true, hasAudio: false });
+            }, 5000);
+        });
+    }
+
+    /**
+     * Извлечение информации о кодеке из вывода FFmpeg
+     */
+    extractCodec(stderr, streamType) {
+        const regex = new RegExp(`${streamType}:\\s*([^\\s,]+)`, 'i');
+        const match = stderr.match(regex);
+        return match ? match[1].toLowerCase() : 'unknown';
+    }
+
+    /**
+     * Запуск видео процесса FFmpeg
+     */
+    async startVideoProcess(streamData) {
+        const outputPath = path.join(this.config.outputDir, `${streamData.id}.m3u8`);
+        const ffmpegArgs = this.buildVideoFFmpegArgs(streamData.rtspUrl, outputPath, streamData.quality);
+        
+        console.log(`🚀 Запуск видео FFmpeg: ${this.config.ffmpegPath} ${ffmpegArgs.join(' ')}`);
+        
+        const process = spawn(this.config.ffmpegPath, ffmpegArgs);
+        
+        return process;
+    }
+
+    /**
+     * Запуск аудио процесса FFmpeg
+     */
+    async startAudioProcess(streamData) {
+        // Остановка предыдущего аудио потока (эксклюзивность)
+        if (this.currentAudioStream && this.currentAudioStream !== streamData.id) {
+            await this.stopAudioStream(this.currentAudioStream);
+        }
+
+        const audioOutputPath = path.join(this.config.audioOutputDir, `${streamData.id}_audio.m3u8`);
+        const audioArgs = this.buildAudioFFmpegArgs(streamData.rtspUrl, audioOutputPath);
+        
+        console.log(`🔊 Запуск аудио FFmpeg: ${this.config.ffmpegPath} ${audioArgs.join(' ')}`);
+        
+        const audioProcess = spawn(this.config.ffmpegPath, audioArgs);
+        this.currentAudioStream = streamData.id;
+        this.audioStreams.set(streamData.id, audioProcess);
+        
+        return audioProcess;
+    }
+
+    /**
+     * Построение аргументов для аудио FFmpeg
+     */
+    buildAudioFFmpegArgs(rtspUrl, outputPath) {
+        return [
+            '-i', rtspUrl,
+            '-timeout', '10000000',
+            '-fflags', '+genpts',
+            '-avoid_negative_ts', 'make_zero',
+            
+            // Только аудио
+            '-vn',
+            '-c:a', 'aac',
+            '-ar', '44100',
+            '-ac', '2',
+            '-b:a', '128k',
+            
+            // HLS настройки для аудио
+            '-f', 'hls',
+            '-hls_time', '2',
+            '-hls_list_size', '3',
+            '-hls_flags', 'delete_segments+independent_segments',
+            '-hls_segment_filename', path.join(this.config.audioOutputDir, `${path.basename(outputPath, '.m3u8')}_audio_%03d.ts`),
+            outputPath
+        ];
+    }
+
+    /**
+     * Построение аргументов FFmpeg для видео
+     */
+    buildVideoFFmpegArgs(rtspUrl, outputPath, quality) {
+        const streamId = path.basename(outputPath, '.m3u8');
         
         const baseArgs = [
-            '-y', // Перезаписывать выходные файлы
-            '-fflags', '+genpts', // Генерировать PTS
-            '-thread_queue_size', '512',
-            '-analyzeduration', '5000000',
-            '-probesize', '5000000',
-            '-i', rtspUrl
+            '-i', rtspUrl,
+            '-timeout', '10000000',
+            '-fflags', '+genpts',
+            '-avoid_negative_ts', 'make_zero',
+            '-reconnect', '1',
+            '-reconnect_streamed', '1',
+            '-reconnect_delay_max', '2'
         ];
 
-        // Настройки в зависимости от качества
         const qualityArgs = quality === 'high' ? [
             // Высокое качество (1080p)
             '-c:v', 'libx264',
@@ -129,7 +281,9 @@ class RTSPStreamManager extends EventEmitter {
             '-r', '25',
             '-b:v', '4M',
             '-maxrate', '4M',
-            '-bufsize', '8M'
+            '-bufsize', '8M',
+            // Убираем аудио из видео потока
+            '-an'
         ] : [
             // Низкое качество (480p)
             '-c:v', 'libx264',
@@ -139,7 +293,9 @@ class RTSPStreamManager extends EventEmitter {
             '-r', '15',
             '-b:v', '1M',
             '-maxrate', '1M',
-            '-bufsize', '2M'
+            '-bufsize', '2M',
+            // Убираем аудио из видео потока
+            '-an'
         ];
 
         const hlsArgs = [
@@ -156,106 +312,130 @@ class RTSPStreamManager extends EventEmitter {
     }
 
     /**
-     * Настройка обработчиков событий FFmpeg
+     * Настройка обработчиков событий FFmpeg для видео
      */
     setupFFmpegHandlers(streamId, ffmpegProcess, camera) {
         const streamData = this.activeStreams.get(streamId);
 
-        // Обработка stdout
-        ffmpegProcess.stdout.on('data', (data) => {
-            // FFmpeg пишет в stderr, но на всякий случай
-        });
-
-        // Обработка stderr (основной вывод FFmpeg)
         ffmpegProcess.stderr.on('data', (data) => {
             const output = data.toString();
             
             // Поиск индикаторов успешного подключения
             if (output.includes('fps=') || output.includes('bitrate=')) {
                 if (streamData.status === 'connecting') {
-                    console.log(`✅ Поток подключен: ${camera.camera_name}`);
+                    console.log(`✅ Видео поток подключен: ${camera.camera_name}`);
                     streamData.status = 'streaming';
-                    
-                    // Очистка таймера подключения
-                    if (streamData.connectionTimer) {
-                        clearTimeout(streamData.connectionTimer);
-                        delete streamData.connectionTimer;
-                    }
-                    
-                    this.emit('streamConnected', { streamId, camera });
-                    this.resetConnectionAttempts(streamId);
+                    this.emit('streamConnected', { streamId, camera, type: 'video' });
                 }
             }
 
             // Обработка ошибок
-            if (output.includes('Connection failed') || 
-                output.includes('No route to host') ||
-                output.includes('Connection refused')) {
-                this.handleStreamError(streamId, new Error('Connection failed'));
+            if (output.includes('Connection refused') || 
+                output.includes('Connection timed out') ||
+                output.includes('No route to host')) {
+                this.handleStreamError(streamId, camera, new Error(output));
             }
         });
 
-        // Обработка завершения процесса
-        ffmpegProcess.on('close', (code, signal) => {
-            console.log(`🔄 FFmpeg завершен для ${camera.camera_name}, код: ${code}, сигнал: ${signal}`);
-            
-            if (streamData.status === 'streaming' && code !== 0 && !signal) {
-                // Неожиданное завершение - попытка переподключения
-                this.handleStreamError(streamId, new Error(`FFmpeg exited with code ${code}`));
-            } else {
-                // Нормальное завершение
-                this.cleanupStream(streamId);
-            }
-        });
-
-        // Обработка ошибок процесса
         ffmpegProcess.on('error', (error) => {
-            console.error(`❌ Ошибка FFmpeg процесса ${camera.camera_name}:`, error.message);
-            this.handleStreamError(streamId, error);
+            console.error(`💥 FFmpeg процесс ошибка:`, error);
+            this.handleStreamError(streamId, camera, error);
+        });
+
+        ffmpegProcess.on('close', (code) => {
+            console.log(`🔌 FFmpeg процесс завершен (код ${code}): ${camera.camera_name}`);
+            if (code !== 0 && streamData.status === 'streaming') {
+                this.handleStreamError(streamId, camera, new Error(`FFmpeg завершен с кодом ${code}`));
+            }
         });
     }
 
     /**
-     * Обработка ошибок потока
+     * Настройка обработчиков событий для аудио процесса
      */
-    async handleStreamError(streamId, error) {
-        const streamData = this.activeStreams.get(streamId);
-        if (!streamData) return;
-
-        console.error(`⚠️ Ошибка потока ${streamData.camera.camera_name}:`, error.message);
-        
-        // Увеличение счетчика попыток
-        const attempts = (this.connectionAttempts.get(streamId) || 0) + 1;
-        this.connectionAttempts.set(streamId, attempts);
-
-        // Уведомление об ошибке
-        this.emit('streamError', { 
-            streamId, 
-            camera: streamData.camera, 
-            error: error.message, 
-            attempts 
+    setupAudioHandlers(streamId, audioProcess, camera) {
+        audioProcess.stderr.on('data', (data) => {
+            const output = data.toString();
+            
+            if (output.includes('fps=') || output.includes('size=')) {
+                console.log(`🔊 Аудио поток активен: ${camera.camera_name}`);
+                this.emit('audioStreamConnected', { streamId, camera });
+            }
         });
 
-        // Очистка текущего потока
-        this.cleanupStream(streamId);
+        audioProcess.on('error', (error) => {
+            console.error(`💥 Аудио процесс ошибка:`, error);
+            this.emit('audioStreamError', { streamId, camera, error });
+        });
 
-        // Попытка переподключения
-        if (attempts < this.config.maxRetries) {
-            console.log(`🔄 Попытка переподключения ${attempts}/${this.config.maxRetries} через ${this.config.retryInterval/1000}с`);
+        audioProcess.on('close', (code) => {
+            console.log(`🔇 Аудио процесс завершен (код ${code}): ${camera.camera_name}`);
+            this.audioStreams.delete(streamId);
+            if (this.currentAudioStream === streamId) {
+                this.currentAudioStream = null;
+            }
+        });
+    }
+
+    /**
+     * Управление аудио - включение/выключение для конкретной камеры
+     */
+    async toggleAudio(cameraId, quality = 'low') {
+        const streamId = `${cameraId}_${quality}`;
+        const streamData = this.activeStreams.get(streamId);
+        
+        if (!streamData) {
+            throw new Error(`Поток не найден: ${streamId}`);
+        }
+
+        // Если аудио уже активно для этой камеры - выключаем
+        if (this.currentAudioStream === streamId) {
+            await this.stopAudioStream(streamId);
+            console.log(`🔇 Аудио выключено: ${streamData.camera.camera_name}`);
+            this.emit('audioStopped', { streamId, camera: streamData.camera });
+            return false;
+        }
+
+        // Включаем аудио для новой камеры
+        try {
+            const audioProcess = await this.startAudioProcess(streamData);
+            streamData.audioProcess = audioProcess;
+            this.setupAudioHandlers(streamId, audioProcess, streamData.camera);
             
-            const reconnectTimer = setTimeout(async () => {
-                try {
-                    await this.startStream(streamData.camera, streamData.quality);
-                } catch (retryError) {
-                    console.error(`❌ Ошибка переподключения:`, retryError.message);
-                }
-                this.reconnectTimers.delete(streamId);
-            }, this.config.retryInterval);
+            console.log(`🔊 Аудио включено: ${streamData.camera.camera_name}`);
+            this.emit('audioStarted', { streamId, camera: streamData.camera });
+            return true;
+        } catch (error) {
+            console.error(`❌ Ошибка включения аудио:`, error);
+            this.emit('audioError', { streamId, camera: streamData.camera, error });
+            return false;
+        }
+    }
 
-            this.reconnectTimers.set(streamId, reconnectTimer);
-        } else {
-            console.error(`💀 Максимальное количество попыток исчерпано для ${streamData.camera.camera_name}`);
-            this.emit('streamFailed', { streamId, camera: streamData.camera });
+    /**
+     * Остановка аудио потока
+     */
+    async stopAudioStream(streamId) {
+        const audioProcess = this.audioStreams.get(streamId);
+        if (audioProcess) {
+            audioProcess.kill('SIGTERM');
+            this.audioStreams.delete(streamId);
+        }
+
+        if (this.currentAudioStream === streamId) {
+            this.currentAudioStream = null;
+        }
+
+        // Очистка аудио файлов
+        try {
+            const audioFiles = fs.readdirSync(this.config.audioOutputDir)
+                .filter(file => file.startsWith(streamId));
+            
+            audioFiles.forEach(file => {
+                fs.unlinkSync(path.join(this.config.audioOutputDir, file));
+            });
+        } catch (error) {
+            console.warn(`⚠️ Не удалось очистить аудио файлы:`, error.message);
         }
     }
 
@@ -264,47 +444,82 @@ class RTSPStreamManager extends EventEmitter {
      */
     async stopStream(streamId) {
         const streamData = this.activeStreams.get(streamId);
-        if (!streamData) return;
-
-        console.log(`🛑 Остановка потока ${streamData.camera.camera_name}`);
-
-        // Остановка процесса FFmpeg
-        if (streamData.process && !streamData.process.killed) {
-            streamData.process.kill('SIGTERM');
+        
+        if (streamData) {
+            console.log(`🛑 Остановка потока: ${streamData.camera.camera_name}`);
             
-            // Принудительное завершение через 5 секунд
-            setTimeout(() => {
-                if (!streamData.process.killed) {
-                    streamData.process.kill('SIGKILL');
-                }
-            }, 5000);
-        }
+            // Остановка видео процесса
+            if (streamData.process) {
+                streamData.process.kill('SIGTERM');
+            }
 
-        this.cleanupStream(streamId);
+            // Остановка аудио процесса
+            if (streamData.audioProcess) {
+                await this.stopAudioStream(streamId);
+            }
+
+            this.activeStreams.delete(streamId);
+            this.connectionAttempts.delete(streamId);
+            
+            // Очистка таймера переподключения
+            if (this.reconnectTimers.has(streamId)) {
+                clearTimeout(this.reconnectTimers.get(streamId));
+                this.reconnectTimers.delete(streamId);
+            }
+
+            // Удаление выходных файлов
+            this.cleanupStreamFiles(streamId);
+        }
     }
 
     /**
-     * Очистка ресурсов потока
+     * Получение статуса всех потоков
      */
-    cleanupStream(streamId) {
-        const streamData = this.activeStreams.get(streamId);
+    getStreamStatus() {
+        const streams = {};
         
-        // Очистка таймеров
-        if (streamData?.connectionTimer) {
-            clearTimeout(streamData.connectionTimer);
-        }
-        
-        const reconnectTimer = this.reconnectTimers.get(streamId);
-        if (reconnectTimer) {
-            clearTimeout(reconnectTimer);
-            this.reconnectTimers.delete(streamId);
+        for (const [streamId, streamData] of this.activeStreams) {
+            streams[streamId] = {
+                camera: streamData.camera,
+                quality: streamData.quality,
+                status: streamData.status,
+                uptime: Date.now() - streamData.startTime,
+                hasAudio: !!streamData.audioProcess,
+                isCurrentAudio: this.currentAudioStream === streamId
+            };
         }
 
-        // Удаление из активных потоков
-        this.activeStreams.delete(streamId);
+        return {
+            totalStreams: this.activeStreams.size,
+            audioStreams: this.audioStreams.size,
+            currentAudioStream: this.currentAudioStream,
+            streams: streams
+        };
+    }
 
-        // Очистка выходных файлов
-        this.cleanupStreamFiles(streamId);
+    /**
+     * Обработка ошибок потока
+     */
+    handleStreamError(streamId, camera, error) {
+        const attempts = (this.connectionAttempts.get(streamId) || 0) + 1;
+        this.connectionAttempts.set(streamId, attempts);
+
+        console.warn(`⚠️ Ошибка потока ${camera.camera_name}: ${error.message} (попытка ${attempts}/${this.config.maxRetries})`);
+        this.emit('streamError', { streamId, camera, error, attempts });
+
+        if (attempts >= this.config.maxRetries) {
+            console.error(`💀 Поток окончательно недоступен: ${camera.camera_name}`);
+            this.emit('streamFailed', { streamId, camera });
+            this.stopStream(streamId);
+        } else {
+            // Планирование переподключения
+            const timer = setTimeout(() => {
+                console.log(`🔄 Попытка переподключения ${attempts + 1}: ${camera.camera_name}`);
+                this.startStream(camera, streamData?.quality || 'low');
+            }, this.config.retryInterval);
+            
+            this.reconnectTimers.set(streamId, timer);
+        }
     }
 
     /**
@@ -312,98 +527,38 @@ class RTSPStreamManager extends EventEmitter {
      */
     cleanupStreamFiles(streamId) {
         try {
-            const outputDir = this.config.outputDir;
-            const files = fs.readdirSync(outputDir);
+            // Очистка видео файлов
+            const videoFiles = fs.readdirSync(this.config.outputDir)
+                .filter(file => file.startsWith(streamId));
             
-            files.forEach(file => {
-                if (file.startsWith(streamId)) {
-                    const filePath = path.join(outputDir, file);
-                    fs.unlinkSync(filePath);
-                }
+            videoFiles.forEach(file => {
+                fs.unlinkSync(path.join(this.config.outputDir, file));
             });
+
+            // Очистка аудио файлов
+            const audioFiles = fs.readdirSync(this.config.audioOutputDir)
+                .filter(file => file.startsWith(streamId));
+            
+            audioFiles.forEach(file => {
+                fs.unlinkSync(path.join(this.config.audioOutputDir, file));
+            });
+
         } catch (error) {
-            console.error(`Ошибка очистки файлов для ${streamId}:`, error.message);
+            console.warn(`⚠️ Ошибка очистки файлов для ${streamId}:`, error.message);
         }
-    }
-
-    /**
-     * Сброс счетчика попыток подключения
-     */
-    resetConnectionAttempts(streamId) {
-        this.connectionAttempts.delete(streamId);
-    }
-
-    /**
-     * Получение URL для воспроизведения
-     */
-    getStreamUrl(streamId) {
-        return `/stream_output/${streamId}.m3u8`;
-    }
-
-    /**
-     * Получение статуса потока
-     */
-    getStreamStatus(streamId) {
-        const streamData = this.activeStreams.get(streamId);
-        if (!streamData) return 'stopped';
-        
-        return streamData.status;
-    }
-
-    /**
-     * Получение информации о всех активных потоках
-     */
-    getActiveStreams() {
-        const streams = {};
-        
-        this.activeStreams.forEach((data, streamId) => {
-            streams[streamId] = {
-                camera: data.camera,
-                quality: data.quality,
-                status: data.status,
-                uptime: Date.now() - data.startTime,
-                attempts: this.connectionAttempts.get(streamId) || 0
-            };
-        });
-
-        return streams;
     }
 
     /**
      * Остановка всех потоков
      */
     async stopAllStreams() {
-        console.log('🛑 Остановка всех RTSP потоков...');
-        
+        console.log('🛑 Остановка всех потоков...');
         const stopPromises = Array.from(this.activeStreams.keys()).map(streamId => 
             this.stopStream(streamId)
         );
-
+        
         await Promise.all(stopPromises);
-        
-        // Очистка всех таймеров
-        this.reconnectTimers.forEach(timer => clearTimeout(timer));
-        this.reconnectTimers.clear();
-        this.connectionAttempts.clear();
-        
         console.log('✅ Все потоки остановлены');
-    }
-
-    /**
-     * Проверка доступности FFmpeg
-     */
-    static async checkFFmpegAvailability() {
-        return new Promise((resolve) => {
-            const ffmpeg = spawn('ffmpeg', ['-version']);
-            
-            ffmpeg.on('close', (code) => {
-                resolve(code === 0);
-            });
-            
-            ffmpeg.on('error', () => {
-                resolve(false);
-            });
-        });
     }
 }
 
