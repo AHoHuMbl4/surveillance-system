@@ -954,13 +954,25 @@
         window.addEventListener('load', initApp);
 
         // Обработка HLS потоков (если поддерживается)
-        if (typeof Hls !== 'undefined') {
-            console.log('HLS.js поддерживается');
-        } else if (HTMLVideoElement.prototype.canPlayType('application/vnd.apple.mpegurl')) {
-            console.log('Нативная поддержка HLS');
-        } else {
-            console.warn('HLS не поддерживается. Некоторые RTSP потоки могут не работать.');
+        function checkHLSSupport() {
+            if (typeof Hls !== 'undefined') {
+                console.log('HLS.js поддерживается');
+                return true;
+            } else {
+                // Проверка нативной поддержки HLS
+                const video = document.createElement('video');
+                if (video.canPlayType && video.canPlayType('application/vnd.apple.mpegurl')) {
+                    console.log('Нативная поддержка HLS');
+                    return true;
+                } else {
+                    console.warn('HLS не поддерживается. Некоторые RTSP потоки могут не работать.');
+                    return false;
+                }
+            }
         }
+        
+        // Проверка поддержки HLS при загрузке
+        checkHLSSupport();
     </script>
 
     <!-- HLS.js для поддержки RTSP потоков в браузерах без нативной поддержки -->
