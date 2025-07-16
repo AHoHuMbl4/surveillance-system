@@ -22,4 +22,4 @@ git push
 
 #  запуск node
 
-node web-server.cjs
+simple-server.cjs
