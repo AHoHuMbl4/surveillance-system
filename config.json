@@ -1,0 +1,107 @@
+{
+  "system": {
+    "version": "2.0.0-autonomous",
+    "autonomous": true,
+    "platform": "linux",
+    "external_dependencies": []
+  },
+  "users": [
+    {
+      "login": "admin",
+      "password_hash": "e8973219d368ad433f873e00fbdc84f51ae90878c270a1aaa2d9630c01ca8aed",
+      "role": "admin"
+    },
+    {
+      "login": "operator",
+      "password_hash": "821426c68854df0ee6f3bcc4d86f6535f9ea87675d4d1ca85245e0b14cc0190e",
+      "role": "operator"
+    }
+  ],
+  "apartments": [
+    {
+      "id": 1,
+      "apartment_name": "Демо квартира 1"
+    },
+    {
+      "id": 2,
+      "apartment_name": "Демо квартира 2"
+    }
+  ],
+  "cameras": [
+    {
+      "id": 1,
+      "camera_name": "Автономная камера 1",
+      "rtsp_link": "demo://autonomous/camera1",
+      "rtsp_link_high": "demo://autonomous/camera1/hd",
+      "apartment_id": 1,
+      "position_x": 0,
+      "position_y": 0,
+      "audio_enabled": true,
+      "autonomous_mode": {
+        "demo_enabled": true,
+        "stream_type": "mjpeg",
+        "fallback_to_demo": true
+      }
+    },
+    {
+      "id": 2,
+      "camera_name": "Автономная камера 2",
+      "rtsp_link": "demo://autonomous/camera2",
+      "rtsp_link_high": "demo://autonomous/camera2/hd",
+      "apartment_id": 1,
+      "position_x": 1,
+      "position_y": 0,
+      "audio_enabled": true,
+      "autonomous_mode": {
+        "demo_enabled": true,
+        "stream_type": "mjpeg",
+        "fallback_to_demo": true
+      }
+    },
+    {
+      "id": 3,
+      "camera_name": "Автономная камера 3",
+      "rtsp_link": "demo://autonomous/camera3",
+      "rtsp_link_high": "demo://autonomous/camera3/hd",
+      "apartment_id": 2,
+      "position_x": 0,
+      "position_y": 0,
+      "audio_enabled": true,
+      "autonomous_mode": {
+        "demo_enabled": true,
+        "stream_type": "mjpeg",
+        "fallback_to_demo": true
+      }
+    }
+  ],
+  "autonomous_settings": {
+    "demo_mode": true,
+    "generate_demo_streams": true,
+    "supported_formats": [
+      "mjpeg",
+      "http-stream"
+    ],
+    "max_demo_fps": 30,
+    "demo_quality_low": "640x480",
+    "demo_quality_high": "1920x1080",
+    "enable_audio_simulation": true
+  },
+  "audio_settings": {
+    "autonomous_mode": true,
+    "demo_audio": true,
+    "exclusive_mode": true,
+    "supported_codecs": [
+      "demo",
+      "wav",
+      "mp3"
+    ],
+    "default_volume": 0.7
+  },
+  "settings": {
+    "rotation_interval": 15,
+    "connection_timeout": 10,
+    "max_retry_attempts": 5,
+    "enable_audio_by_default": false,
+    "autonomous_mode": true
+  }
+}
