@@ -5,13 +5,6 @@ const path = require('path');
 const app = express();
 const PORT = 3000;
 
-// Настройка MIME типов для TypeScript и других файлов
-express.static.mime.define({
-    'application/javascript': ['ts'],
-    'text/css': ['css'],
-    'text/html': ['html']
-});
-
 // Статические файлы с правильными MIME типами
 app.use(express.static('src', {
     setHeaders: (res, path) => {
