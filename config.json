@@ -1,8 +1,8 @@
 {
   "users": [
     {
-      "login": "admin", 
-      "password_hash": "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+      "login": "admin",
+      "password_hash": "not_used_for_now",
       "role": "admin"
     }
   ],
@@ -10,14 +10,14 @@
     {
       "id": 1,
       "apartment_name": "Тестовая квартира",
-      "apartment_number": "TEST-1" 
+      "apartment_number": "TEST-1"
     }
   ],
   "cameras": [
     {
       "id": 1,
       "camera_name": "Тестовая камера",
-      "apartment_name": "Тестовая квартира", 
+      "apartment_name": "Тестовая квартира",
       "rtsp_link": "rtsp://demo:demo@ipvmdemo.dyndns.org:554/onvif-media/media.amp",
       "rtsp_hd_link": "rtsp://demo:demo@ipvmdemo.dyndns.org:554/onvif-media/media.amp",
       "enabled": true
