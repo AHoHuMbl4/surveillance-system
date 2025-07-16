@@ -264,12 +264,51 @@
         .camera-grid {
             flex: 1;
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(4, 1fr);
             gap: 2px;
             padding: 2px;
             background: #000;
             overflow: hidden;
+        }
+
+        /* Адаптивные сетки в зависимости от количества камер */
+        .camera-grid.cameras-1 {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+        }
+
+        .camera-grid.cameras-2 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr;
+        }
+
+        .camera-grid.cameras-3 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: 1fr;
+        }
+
+        .camera-grid.cameras-4 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+
+        .camera-grid.cameras-5, .camera-grid.cameras-6 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+
+        .camera-grid.cameras-7, .camera-grid.cameras-8, .camera-grid.cameras-9 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+        }
+
+        .camera-grid.cameras-10, .camera-grid.cameras-11, .camera-grid.cameras-12 {
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+        }
+
+        .camera-grid.cameras-13, .camera-grid.cameras-14, .camera-grid.cameras-15, .camera-grid.cameras-16 {
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
         }
 
         .camera-slot {
@@ -441,6 +480,70 @@
 
         .mock-video.camera-5 {
             background: linear-gradient(45deg, #ffeaa7 0%, #74b9ff 50%, #ffeaa7 100%);
+        }
+
+        .mock-video.camera-6 {
+            background: linear-gradient(45deg, #fd79a8 0%, #fdcb6e 50%, #fd79a8 100%);
+        }
+
+        .mock-video.camera-7 {
+            background: linear-gradient(45deg, #a29bfe 0%, #6c5ce7 50%, #a29bfe 100%);
+        }
+
+        .mock-video.camera-8 {
+            background: linear-gradient(45deg, #00b894 0%, #00cec9 50%, #00b894 100%);
+        }
+
+        .mock-video.camera-9 {
+            background: linear-gradient(45deg, #e17055 0%, #fab1a0 50%, #e17055 100%);
+        }
+
+        .mock-video.camera-10 {
+            background: linear-gradient(45deg, #0984e3 0%, #74b9ff 50%, #0984e3 100%);
+        }
+
+        .mock-video.camera-11 {
+            background: linear-gradient(45deg, #fd79a8 0%, #e84393 50%, #fd79a8 100%);
+        }
+
+        .mock-video.camera-12 {
+            background: linear-gradient(45deg, #00b894 0%, #55a3ff 50%, #00b894 100%);
+        }
+
+        .mock-video.camera-13 {
+            background: linear-gradient(45deg, #fdcb6e 0%, #e17055 50%, #fdcb6e 100%);
+        }
+
+        .mock-video.camera-14 {
+            background: linear-gradient(45deg, #6c5ce7 0%, #a29bfe 50%, #6c5ce7 100%);
+        }
+
+        .mock-video.camera-15 {
+            background: linear-gradient(45deg, #00cec9 0%, #55efc4 50%, #00cec9 100%);
+        }
+
+        .mock-video.camera-16 {
+            background: linear-gradient(45deg, #ff7675 0%, #fd79a8 50%, #ff7675 100%);
+        }
+
+        .mock-video.camera-17 {
+            background: linear-gradient(45deg, #74b9ff 0%, #0984e3 50%, #74b9ff 100%);
+        }
+
+        .mock-video.camera-18 {
+            background: linear-gradient(45deg, #55efc4 0%, #00b894 50%, #55efc4 100%);
+        }
+
+        .mock-video.camera-19 {
+            background: linear-gradient(45deg, #fab1a0 0%, #e17055 50%, #fab1a0 100%);
+        }
+
+        .mock-video.camera-20 {
+            background: linear-gradient(45deg, #81ecec 0%, #00cec9 50%, #81ecec 100%);
+        }
+
+        .mock-video.camera-21 {
+            background: linear-gradient(45deg, #a29bfe 0%, #fd79a8 50%, #a29bfe 100%);
         }
     </style>
 </head>
@@ -719,44 +822,55 @@
             const grid = document.getElementById('cameraGrid');
             grid.innerHTML = '';
             
-            // Создаем 16 слотов (4x4)
-            for (let i = 0; i < 16; i++) {
+            // Убираем все классы камер и добавляем нужный
+            grid.className = 'camera-grid';
+            const cameraCount = cameras.length;
+            if (cameraCount > 0) {
+                grid.classList.add(`cameras-${cameraCount}`);
+            }
+            
+            // Создаем слоты только для реальных камер
+            cameras.forEach((camera, index) => {
                 const slot = document.createElement('div');
-                slot.className = 'camera-slot';
+                slot.className = 'camera-slot active';
                 
-                if (i < cameras.length) {
-                    const camera = cameras[i];
-                    slot.classList.add('active');
-                    
-                    const video = document.createElement('div');
-                    video.className = `mock-video camera-${camera.id}`;
-                    video.textContent = '📹';
-                    
-                    const overlay = document.createElement('div');
-                    overlay.className = 'camera-overlay';
-                    overlay.innerHTML = `
-                        <div class="camera-name">${camera.camera_name}</div>
-                        <div class="camera-status">480p • Online</div>
-                    `;
-                    
-                    const indicator = document.createElement('div');
-                    indicator.className = 'status-indicator';
-                    
-                    slot.appendChild(video);
-                    slot.appendChild(overlay);
-                    slot.appendChild(indicator);
-                    
-                    // Обработчик клика для полноэкранного режима
-                    slot.onclick = () => openFullscreen(camera);
-                } else {
-                    const placeholder = document.createElement('div');
-                    placeholder.className = 'camera-video';
-                    placeholder.textContent = '—';
-                    slot.appendChild(placeholder);
-                }
+                const video = document.createElement('div');
+                video.className = `mock-video camera-${camera.id}`;
+                video.textContent = '📹';
+                
+                const overlay = document.createElement('div');
+                overlay.className = 'camera-overlay';
+                overlay.innerHTML = `
+                    <div class="camera-name">${camera.camera_name}</div>
+                    <div class="camera-status">480p • Online</div>
+                `;
+                
+                const indicator = document.createElement('div');
+                indicator.className = 'status-indicator';
+                
+                slot.appendChild(video);
+                slot.appendChild(overlay);
+                slot.appendChild(indicator);
+                
+                // Обработчик клика для полноэкранного режима
+                slot.onclick = () => openFullscreen(camera);
                 
                 grid.appendChild(slot);
-            }
+            });
+            
+            console.log(`📊 Показано ${cameraCount} камер для "${apartment.apartment_name}" в сетке ${getGridDescription(cameraCount)}`);
+        }
+
+        // Получить описание сетки
+        function getGridDescription(count) {
+            if (count === 1) return '1×1';
+            if (count === 2) return '2×1';
+            if (count === 3) return '3×1';
+            if (count === 4) return '2×2';
+            if (count <= 6) return '3×2';
+            if (count <= 9) return '3×3';
+            if (count <= 12) return '4×3';
+            return '4×4';
         }
 
         // Открыть полноэкранный режим

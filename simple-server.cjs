@@ -20,23 +20,38 @@ const testConfig = {
     apartments: [
         { id: 1, apartment_name: "Квартира на Пушкина", apartment_number: "12А" },
         { id: 2, apartment_name: "Квартира на Ленина", apartment_number: "34Б" },
-        { id: 3, apartment_name: "Квартира на Советской", apartment_number: "56В" }
+        { id: 3, apartment_name: "Квартира на Советской", apartment_number: "56В" },
+        { id: 4, apartment_name: "Пентхаус", apartment_number: "101" }
     ],
     cameras: [
-        // Квартира на Пушкина (4 камеры)
+        // Квартира на Пушкина (4 камеры) - сетка 2×2
         { id: 1, camera_name: "Прихожая", apartment_name: "Квартира на Пушкина", rtsp_link: "rtsp://192.168.1.100:554/stream1", enabled: true },
         { id: 2, camera_name: "Гостиная", apartment_name: "Квартира на Пушкина", rtsp_link: "rtsp://192.168.1.101:554/stream1", enabled: true },
         { id: 3, camera_name: "Кухня", apartment_name: "Квартира на Пушкина", rtsp_link: "rtsp://192.168.1.102:554/stream1", enabled: true },
         { id: 4, camera_name: "Спальня", apartment_name: "Квартира на Пушкина", rtsp_link: "rtsp://192.168.1.103:554/stream1", enabled: true },
         
-        // Квартира на Ленина (3 камеры)
-        { id: 5, camera_name: "Спальня", apartment_name: "Квартира на Ленина", rtsp_link: "rtsp://192.168.1.200:554/stream1", enabled: true },
+        // Квартира на Ленина (2 камеры) - сетка 2×1
+        { id: 5, camera_name: "Гостиная", apartment_name: "Квартира на Ленина", rtsp_link: "rtsp://192.168.1.200:554/stream1", enabled: true },
         { id: 6, camera_name: "Балкон", apartment_name: "Квартира на Ленина", rtsp_link: "rtsp://192.168.1.201:554/stream1", enabled: true },
-        { id: 7, camera_name: "Кухня", apartment_name: "Квартира на Ленина", rtsp_link: "rtsp://192.168.1.202:554/stream1", enabled: true },
         
-        // Квартира на Советской (2 камеры)
-        { id: 8, camera_name: "Гостиная", apartment_name: "Квартира на Советской", rtsp_link: "rtsp://192.168.1.300:554/stream1", enabled: true },
-        { id: 9, camera_name: "Прихожая", apartment_name: "Квартира на Советской", rtsp_link: "rtsp://192.168.1.301:554/stream1", enabled: true }
+        // Квартира на Советской (6 камер) - сетка 3×2
+        { id: 7, camera_name: "Прихожая", apartment_name: "Квартира на Советской", rtsp_link: "rtsp://192.168.1.300:554/stream1", enabled: true },
+        { id: 8, camera_name: "Гостиная", apartment_name: "Квартира на Советской", rtsp_link: "rtsp://192.168.1.301:554/stream1", enabled: true },
+        { id: 9, camera_name: "Кухня", apartment_name: "Квартира на Советской", rtsp_link: "rtsp://192.168.1.302:554/stream1", enabled: true },
+        { id: 10, camera_name: "Спальня 1", apartment_name: "Квартира на Советской", rtsp_link: "rtsp://192.168.1.303:554/stream1", enabled: true },
+        { id: 11, camera_name: "Спальня 2", apartment_name: "Квартира на Советской", rtsp_link: "rtsp://192.168.1.304:554/stream1", enabled: true },
+        { id: 12, camera_name: "Ванная", apartment_name: "Квартира на Советской", rtsp_link: "rtsp://192.168.1.305:554/stream1", enabled: true },
+        
+        // Пентхаус (9 камер) - сетка 3×3
+        { id: 13, camera_name: "Входная дверь", apartment_name: "Пентхаус", rtsp_link: "rtsp://192.168.1.400:554/stream1", enabled: true },
+        { id: 14, camera_name: "Гостиная", apartment_name: "Пентхаус", rtsp_link: "rtsp://192.168.1.401:554/stream1", enabled: true },
+        { id: 15, camera_name: "Кухня", apartment_name: "Пентхаус", rtsp_link: "rtsp://192.168.1.402:554/stream1", enabled: true },
+        { id: 16, camera_name: "Спальня 1", apartment_name: "Пентхаус", rtsp_link: "rtsp://192.168.1.403:554/stream1", enabled: true },
+        { id: 17, camera_name: "Спальня 2", apartment_name: "Пентхаус", rtsp_link: "rtsp://192.168.1.404:554/stream1", enabled: true },
+        { id: 18, camera_name: "Кабинет", apartment_name: "Пентхаус", rtsp_link: "rtsp://192.168.1.405:554/stream1", enabled: true },
+        { id: 19, camera_name: "Терраса", apartment_name: "Пентхаус", rtsp_link: "rtsp://192.168.1.406:554/stream1", enabled: true },
+        { id: 20, camera_name: "Бассейн", apartment_name: "Пентхаус", rtsp_link: "rtsp://192.168.1.407:554/stream1", enabled: true },
+        { id: 21, camera_name: "Парковка", apartment_name: "Пентхаус", rtsp_link: "rtsp://192.168.1.408:554/stream1", enabled: true }
     ]
 };
 
