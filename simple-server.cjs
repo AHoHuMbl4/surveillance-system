@@ -23,11 +23,20 @@ const testConfig = {
         { id: 3, apartment_name: "Квартира на Советской", apartment_number: "56В" }
     ],
     cameras: [
+        // Квартира на Пушкина (4 камеры)
         { id: 1, camera_name: "Прихожая", apartment_name: "Квартира на Пушкина", rtsp_link: "rtsp://192.168.1.100:554/stream1", enabled: true },
         { id: 2, camera_name: "Гостиная", apartment_name: "Квартира на Пушкина", rtsp_link: "rtsp://192.168.1.101:554/stream1", enabled: true },
         { id: 3, camera_name: "Кухня", apartment_name: "Квартира на Пушкина", rtsp_link: "rtsp://192.168.1.102:554/stream1", enabled: true },
-        { id: 4, camera_name: "Спальня", apartment_name: "Квартира на Ленина", rtsp_link: "rtsp://192.168.1.200:554/stream1", enabled: true },
-        { id: 5, camera_name: "Балкон", apartment_name: "Квартира на Ленина", rtsp_link: "rtsp://192.168.1.201:554/stream1", enabled: true }
+        { id: 4, camera_name: "Спальня", apartment_name: "Квартира на Пушкина", rtsp_link: "rtsp://192.168.1.103:554/stream1", enabled: true },
+        
+        // Квартира на Ленина (3 камеры)
+        { id: 5, camera_name: "Спальня", apartment_name: "Квартира на Ленина", rtsp_link: "rtsp://192.168.1.200:554/stream1", enabled: true },
+        { id: 6, camera_name: "Балкон", apartment_name: "Квартира на Ленина", rtsp_link: "rtsp://192.168.1.201:554/stream1", enabled: true },
+        { id: 7, camera_name: "Кухня", apartment_name: "Квартира на Ленина", rtsp_link: "rtsp://192.168.1.202:554/stream1", enabled: true },
+        
+        // Квартира на Советской (2 камеры)
+        { id: 8, camera_name: "Гостиная", apartment_name: "Квартира на Советской", rtsp_link: "rtsp://192.168.1.300:554/stream1", enabled: true },
+        { id: 9, camera_name: "Прихожая", apartment_name: "Квартира на Советской", rtsp_link: "rtsp://192.168.1.301:554/stream1", enabled: true }
     ]
 };
 
