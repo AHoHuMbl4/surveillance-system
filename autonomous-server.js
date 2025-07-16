@@ -1,7 +1,6 @@
 /**
  * Autonomous Surveillance Server - Полностью автономная система видеонаблюдения
- * Работает БЕЗ внешних зависимостей (FFmpeg, GStreamer и т.д.)
- * Кроссплатформенная реализация: Windows, macOS, Linux
+ * ИСПРАВЛЕНА ПРОБЛЕМА С АУТЕНТИФИКАЦИЕЙ
  */
 
 import http from 'http';
@@ -122,6 +121,16 @@ class AutonomousSurveillanceServer {
                 enable_audio_simulation: true
             };
         }
+
+        // Обновляем пароли пользователей для автономного режима
+        this.currentConfig.users.forEach(user => {
+            // Простые пароли для демонстрации
+            if (user.login === 'admin') {
+                user.password_hash = this.hashPassword('admin123');
+            } else if (user.login === 'operator') {
+                user.password_hash = this.hashPassword('operator123');
+            }
+        });
 
         // Обновляем камеры для автономного режима
         this.currentConfig.cameras.forEach(camera => {
@@ -261,17 +270,25 @@ class AutonomousSurveillanceServer {
     }
 
     /**
-     * Простое хеширование пароля (для автономного режима)
+     * Улучшенное хеширование пароля для автономного режима
      */
     hashPassword(password) {
-        return crypto.createHash('sha256').update(password + 'autonomous_salt').digest('hex');
+        // Используем простое, но надежное хеширование для демонстрации
+        const salt = 'autonomous_surveillance_salt_2024';
+        return crypto.createHash('sha256').update(password + salt).digest('hex');
     }
 
     /**
      * Проверка пароля
      */
     verifyPassword(password, hash) {
-        return this.hashPassword(password) === hash;
+        const computedHash = this.hashPassword(password);
+        console.log(`🔐 Проверка пароля:`);
+        console.log(`  Введенный пароль: "${password}"`);
+        console.log(`  Вычисленный хеш: ${computedHash}`);
+        console.log(`  Ожидаемый хеш: ${hash}`);
+        console.log(`  Совпадение: ${computedHash === hash}`);
+        return computedHash === hash;
     }
 
     /**
@@ -485,27 +502,37 @@ class AutonomousSurveillanceServer {
     }
 
     /**
-     * Обработка входа в автономном режиме
+     * ИСПРАВЛЕННАЯ обработка входа в автономном режиме
      */
     async handleLogin(res, data) {
         try {
             const { login, password } = data;
             
+            console.log(`🔐 Попытка входа: логин="${login}", пароль="${password}"`);
+            
             if (!login || !password) {
+                console.log('❌ Не указаны логин или пароль');
                 return this.sendError(res, 400, 'Логин и пароль обязательны');
             }
 
             const user = this.currentConfig.users.find(u => u.login === login);
             if (!user) {
+                console.log(`❌ Пользователь не найден: ${login}`);
                 return this.sendError(res, 401, 'Неверный логин или пароль');
             }
+
+            console.log(`🔍 Найден пользователь: ${user.login}, роль: ${user.role}`);
+            console.log(`🔍 Хеш пароля в базе: ${user.password_hash}`);
 
             // Проверка пароля в автономном режиме
             const isValidPassword = this.verifyPassword(password, user.password_hash);
             
             if (!isValidPassword) {
+                console.log(`❌ Неверный пароль для пользователя: ${login}`);
                 return this.sendError(res, 401, 'Неверный логин или пароль');
             }
+
+            console.log(`✅ Успешная аутентификация пользователя: ${login}`);
 
             // Создание сессии
             const sessionToken = this.generateSessionToken();
@@ -515,6 +542,8 @@ class AutonomousSurveillanceServer {
                 permissions: this.getUserPermissions(user.role),
                 autonomous: true
             });
+
+            console.log(`🎫 Создана сессия: ${sessionToken}`);
 
             this.sendJSON(res, {
                 success: true,
@@ -799,6 +828,7 @@ class AutonomousSurveillanceServer {
         console.log(`📱 Платформа: ${systemInfo.platform}`);
         console.log(`⚡ Node.js: ${systemInfo.nodeVersion}`);
         console.log(`🎯 Возможности: ${Object.keys(systemInfo.features).filter(f => systemInfo.features[f]).join(', ')}`);
+        console.log(`🔐 Демо пароли: admin/admin123, operator/operator123`);
 
         this.server.listen(port, () => {
             console.log(`🌐 Автономный сервер запущен на порту ${port}`);
